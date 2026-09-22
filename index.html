@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Balance Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>Balance <em>Planner</em></h1>
+      <div class="sub">Fun gets scheduled first. Study fits around it — not the other way around.</div>
+    </div>
+    <div class="weekrange" id="weekLabel"></div>
+  </header>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="panel" id="scorePanel">
+        <h2>This week</h2>
+        <div id="balanceBars"></div>
+        <div class="verdict" id="verdictBox"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Add a block</h2>
+        <form class="add" id="addForm">
+          <div class="field">
+            <label for="title">What is it</label>
+            <input id="title" type="text" placeholder="e.g. Stat 415 problem set" required />
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <div class="cat-select" id="catSelect">
+              <div class="cat-btn active" data-cat="study">Study</div>
+              <div class="cat-btn" data-cat="fun">Fun</div>
+              <div class="cat-btn" data-cat="fixed">Fixed</div>
+              <div class="cat-btn" data-cat="sleep">Sleep</div>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="day">Day</label>
+              <select id="day">
+                <option value="0">Monday</option>
+                <option value="1">Tuesday</option>
+                <option value="2">Wednesday</option>
+                <option value="3">Thursday</option>
+                <option value="4">Friday</option>
+                <option value="5">Saturday</option>
+                <option value="6">Sunday</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="start">Start</label>
+              <input id="start" type="time" value="18:00" required />
+            </div>
+          </div>
+          <div class="field">
+            <label for="dur">Duration (hours)</label>
+            <input id="dur" type="number" min="0.25" max="12" step="0.25" value="1.5" required />
+          </div>
+          <button class="primary" type="submit">Add to week</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Weekly targets</h2>
+        <div class="field">
+          <label for="funTarget">Fun target (hrs/week)</label>
+          <input id="funTarget" type="number" min="0" max="60" step="1" value="10" />
+        </div>
+        <div class="field" style="margin-top:8px;">
+          <label for="sleepTarget">Sleep target (hrs/week)</label>
+          <input id="sleepTarget" type="number" min="0" max="80" step="1" value="49" />
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-wrap">
+      <div class="grid-head" id="gridHead"></div>
+      <div class="grid-body" id="gridBody"></div>
+    </div>
+  </div>
+
+  <div class="legend" style="margin-top:16px;">
+    <span><span class="dot" style="background:var(--study)"></span>Study / work</span>
+    <span><span class="dot" style="background:var(--fun)"></span>Fun</span>
+    <span><span class="dot" style="background:var(--fixed)"></span>Fixed commitment</span>
+    <span><span class="dot" style="background:var(--sleep)"></span>Sleep</span>
+  </div>
+
+  <footer class="note">
+    Saved in this browser only. Click a block's × to remove it. Grid runs 6:00 AM – 2:00 AM.
+  </footer>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
