@@ -26,6 +26,7 @@
         <h2>This week</h2>
         <div id="balanceBars"></div>
         <div class="verdict" id="verdictBox"></div>
+        <button class="btn-secondary" type="button" id="resetWeek" style="margin-top:12px;" title="Clears every block except pinned ones">Reset week</button>
         <div class="targets-inline">
           <div class="field">
             <label for="funTarget">Fun target (hrs/week)</label>
@@ -132,6 +133,7 @@
           <button class="primary" type="submit">Add task</button>
         </form>
         <button class="primary" type="button" id="runScheduler" style="margin-top:10px; background:var(--study);">Auto-schedule study time</button>
+        <button class="primary" type="button" id="rebalanceBehind" style="margin-top:8px; background:var(--warn);" title="Credits whatever study time already happened today, then replans the rest">I'm behind today</button>
         <div id="schedulerReport"></div>
       </div>
     </div>
@@ -145,7 +147,7 @@
   </div>
 
   <footer class="note">
-    Saved in this browser only. Click a block's × to remove it. Grid runs 6:00 AM – 2:00 AM.
+    Saved in this browser only. Click a block's × to remove it. Grid shows the full 24-hour day.
   </footer>
 </div>
 

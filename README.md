@@ -4,7 +4,7 @@ A weekly time-management tool that schedules fun as a fixed commitment, not left
 
 ## Features
 
-- Weekly timetable grid (6 AM – 12 AM) with four block types: Study, Fun, Fixed, Sleep
+- Weekly timetable grid covering the full 24 hours with four block types: Study, Fun, Fixed, Sleep
 - Add/remove blocks with title, day, start time, and duration
 - Set weekly fun and sleep targets
 - Balance score panel that flags when fun or sleep is under target

@@ -223,6 +223,19 @@
   }
   button.primary:hover { opacity: .88; }
 
+  button.btn-secondary {
+    padding: 8px 10px;
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+    width: 100%;
+  }
+  button.btn-secondary:hover { color: var(--ink); border-color: var(--ink-soft); }
+
   .legend {
     display: flex;
     flex-wrap: wrap;
@@ -324,6 +337,18 @@
   .block .lock svg { display: block; }
   .block:hover .lock { opacity: .6; }
   .block .lock:hover { opacity: 1; }
+  .block .pin {
+    position: absolute;
+    top: 3px; right: 32px;
+    opacity: 0;
+    cursor: pointer;
+    color: inherit;
+    display: flex;
+  }
+  .block .pin svg { display: block; }
+  .block .pin.pinned { opacity: .7; fill: currentColor; }
+  .block:hover .pin { opacity: .6; }
+  .block .pin:hover, .block .pin.pinned:hover { opacity: 1; }
 
   .sort-check {
     display: flex;

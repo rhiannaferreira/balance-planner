@@ -156,7 +156,7 @@
   function autoSchedule(input) {
     const {
       tasks, blocks, weekStart, today,
-      startHour = 6, endHour = 26, maxSessionHours = 2
+      startHour = 0, endHour = 24, maxSessionHours = 2
     } = input;
 
     const freeByDay = computeFreeByDay(blocks, { startHour, endHour, weekStart, today });

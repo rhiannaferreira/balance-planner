@@ -1,8 +1,8 @@
 (function () {
   const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const START_HOUR = 6;   // 6am
-  const END_HOUR = 26;    // 2am next day
-  const SPAN = END_HOUR - START_HOUR; // 20 hours
+  const START_HOUR = 0;   // midnight
+  const END_HOUR = 24;    // midnight next day
+  const SPAN = END_HOUR - START_HOUR; // 24 hours
   const HPX = 40; // px per hour
 
   const STORE_KEY = 'balance-planner-v1';
@@ -99,6 +99,7 @@
   }
 
   const LOCK_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  const PIN_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15 9 22 9 16.5 13.5 18.5 21 12 17 5.5 21 7.5 13.5 2 9 9 9"/></svg>';
 
   function renderBlock(b) {
     const col = document.querySelector('.day-col[data-day="' + b.day + '"]');
@@ -112,6 +113,7 @@
     el.style.height = height + 'px';
     el.innerHTML = '<span class="t">' + escapeHtml(b.title) + '</span>' +
                     (height > 26 ? '<span class="time">' + fmtRange(b.start, b.dur) + '</span>' : '') +
+                    '<span class="pin' + (b.pin ? ' pinned' : '') + '" data-id="' + b.id + '" title="' + (b.pin ? 'Pinned — kept on Reset week' : 'Pin so Reset week keeps this') + '">' + PIN_SVG + '</span>' +
                     (b.auto ? '<span class="lock" data-id="' + b.id + '" title="Lock so re-planning leaves this alone">' + LOCK_SVG + '</span>' : '') +
                     '<span class="x" data-id="' + b.id + '">×</span>';
     col.appendChild(el);
@@ -226,7 +228,7 @@
   function attachDragHandlers() {
     document.getElementById('gridBody').addEventListener('pointerdown', (e) => {
       const blockEl = e.target.closest('.block');
-      if (!blockEl || e.target.closest('.x') || e.target.closest('.lock')) return;
+      if (!blockEl || e.target.closest('.x') || e.target.closest('.lock') || e.target.closest('.pin')) return;
       const block = state.blocks.find(b => b.id === blockEl.dataset.id);
       if (!block) return;
 
@@ -290,6 +292,12 @@
       if (lock) {
         const block = state.blocks.find(b => b.id === lock.getAttribute('data-id'));
         if (block) { block.auto = false; saveState(); buildGrid(); }
+        return;
+      }
+      const pin = e.target.closest('.pin');
+      if (pin) {
+        const block = state.blocks.find(b => b.id === pin.getAttribute('data-id'));
+        if (block) { block.pin = !block.pin; saveState(); buildGrid(); }
         return;
       }
       if (e.target.classList.contains('x')) {
@@ -361,16 +369,47 @@
       document.getElementById('taskTitle').value = '';
     });
 
-    document.getElementById('runScheduler').addEventListener('click', () => {
+    function replant() {
       const weekStart = getWeekStart();
       const today = new Date();
       state.blocks = state.blocks.filter(b => !b.auto);
-      const { newBlocks, report } = Scheduler.autoSchedule({ tasks: state.tasks, blocks: state.blocks, weekStart, today });
+      const { newBlocks, report } = Scheduler.autoSchedule({
+        tasks: state.tasks, blocks: state.blocks, weekStart, today,
+        startHour: START_HOUR, endHour: END_HOUR
+      });
       state.blocks = state.blocks.concat(newBlocks);
       saveState();
       buildGrid();
       renderBalance();
       renderSchedulerReport(report);
+    }
+
+    document.getElementById('runScheduler').addEventListener('click', replant);
+
+    document.getElementById('rebalanceBehind').addEventListener('click', () => {
+      const weekStart = getWeekStart();
+      const today = new Date();
+      const todayIdx = Scheduler.dayIndexForDate(weekStart, today);
+      const nowHour = today.getHours() + today.getMinutes() / 60;
+
+      // Credit whatever study time already happened before clearing and replanting,
+      // so completed-but-unlocked sessions don't get silently rescheduled on top of
+      // themselves elsewhere in the week.
+      state.blocks.forEach(b => {
+        if (b.auto && (b.day < todayIdx || (b.day === todayIdx && b.start < nowHour))) {
+          b.auto = false;
+        }
+      });
+
+      replant();
+    });
+
+    document.getElementById('resetWeek').addEventListener('click', () => {
+      if (!confirm('Reset this week? This clears every block except pinned ones.')) return;
+      state.blocks = state.blocks.filter(b => b.pin);
+      saveState();
+      buildGrid();
+      renderBalance();
     });
 
     const catSelect = document.getElementById('catSelect');
@@ -391,8 +430,7 @@
       const dur = Number(document.getElementById('dur').value);
       if (!title || !startStr || !dur) return;
       const [hh, mm] = startStr.split(':').map(Number);
-      let start = hh + (mm / 60);
-      if (start < START_HOUR) start += 24; // treat early-morning times as post-midnight
+      const start = hh + (mm / 60);
 
       state.blocks.push({
         id: 'b' + Date.now(),
