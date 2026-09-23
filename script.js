@@ -32,6 +32,9 @@
   let state = loadState();
   if (!Array.isArray(state.tasks)) state.tasks = [];
 
+  let taskFilter = 'all';
+  let sortTasksByPriority = false;
+
   function saveState() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
     catch (e) { /* storage unavailable — continue silently */ }
@@ -104,6 +107,7 @@
     const height = Math.max(b.dur * HPX - 2, 16);
     const el = document.createElement('div');
     el.className = 'block ' + b.cat;
+    el.dataset.id = b.id;
     el.style.top = top + 'px';
     el.style.height = height + 'px';
     el.innerHTML = '<span class="t">' + escapeHtml(b.title) + '</span>' +
@@ -164,15 +168,33 @@
 
   function renderTasks() {
     const container = document.getElementById('taskList');
-    if (!state.tasks.length) {
+    let list = state.tasks.filter(t =>
+      taskFilter === 'all' || (t.category || 'academics') === taskFilter
+    );
+    list = list.slice().sort((a, b) => {
+      if (sortTasksByPriority) {
+        const pd = (b.priority || 0) - (a.priority || 0);
+        if (pd !== 0) return pd;
+      }
+      return a.dueDate.localeCompare(b.dueDate);
+    });
+
+    if (!list.length) {
       container.innerHTML = '<div class="empty-note" style="padding:8px 0;">No tasks yet.</div>';
       return;
     }
-    container.innerHTML = state.tasks.map(t =>
-      '<div class="task-row"><span class="tt">' + escapeHtml(t.title) + '</span>' +
-      '<span class="tm">' + t.estHours + 'h · due ' + t.dueDate + '</span>' +
-      '<span class="x" data-task-id="' + t.id + '">×</span></div>'
-    ).join('');
+    container.innerHTML = list.map(t => {
+      const priority = t.priority || 0;
+      const category = t.category || 'academics';
+      return '<div class="task-row">' +
+        '<div class="task-row-top"><span class="tt">' + escapeHtml(t.title) + '</span>' +
+        '<span class="x" data-task-id="' + t.id + '">×</span></div>' +
+        '<div class="task-row-meta">' +
+        '<span class="tm">' + t.estHours + 'h · due ' + t.dueDate + '</span>' +
+        '<span class="cat-tag">' + (category === 'personal' ? 'Personal' : 'Academics') + '</span>' +
+        (priority > 0 ? '<span class="pri pri-' + priority + '">' + '!'.repeat(priority) + '</span>' : '') +
+        '</div></div>';
+    }).join('');
   }
 
   function renderSchedulerReport(report) {
@@ -186,6 +208,80 @@
         return '<div>' + escapeHtml(r.title) + ' — ' + bits.join(', ') + '</div>';
       }).join('') +
       '</div>';
+  }
+
+  let highlightedCol = null;
+  function highlightDayUnder(x, y) {
+    const col = document.elementFromPoint(x, y)?.closest('.day-col');
+    if (col === highlightedCol) return;
+    if (highlightedCol) highlightedCol.classList.remove('drop-target');
+    highlightedCol = col || null;
+    if (highlightedCol) highlightedCol.classList.add('drop-target');
+  }
+  function clearDayHighlight() {
+    if (highlightedCol) highlightedCol.classList.remove('drop-target');
+    highlightedCol = null;
+  }
+
+  function attachDragHandlers() {
+    document.getElementById('gridBody').addEventListener('pointerdown', (e) => {
+      const blockEl = e.target.closest('.block');
+      if (!blockEl || e.target.closest('.x') || e.target.closest('.lock')) return;
+      const block = state.blocks.find(b => b.id === blockEl.dataset.id);
+      if (!block) return;
+
+      const startX = e.clientX, startY = e.clientY;
+      const pointerId = e.pointerId;
+      let dragging = false;
+      try { blockEl.setPointerCapture(pointerId); } catch (err) { /* not required for correctness below */ }
+
+      function onMove(ev) {
+        if (ev.pointerId !== pointerId) return;
+        const dx = ev.clientX - startX, dy = ev.clientY - startY;
+        if (!dragging && Math.hypot(dx, dy) > 4) {
+          dragging = true;
+          blockEl.classList.add('dragging');
+          blockEl.style.pointerEvents = 'none';
+        }
+        if (dragging) {
+          blockEl.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+          highlightDayUnder(ev.clientX, ev.clientY);
+        }
+      }
+
+      function onUp(ev) {
+        if (ev.pointerId !== pointerId) return;
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        clearDayHighlight();
+        if (!dragging) return;
+
+        const targetCol = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-col');
+        if (targetCol) {
+          const targetDay = Number(targetCol.getAttribute('data-day'));
+          const rect = targetCol.getBoundingClientRect();
+          const rawHour = START_HOUR + (ev.clientY - rect.top) / HPX;
+          let newStart = Math.round(rawHour * 4) / 4;
+          newStart = Math.max(START_HOUR, Math.min(newStart, END_HOUR - block.dur));
+
+          const overlaps = state.blocks.some(other =>
+            other.id !== block.id && other.day === targetDay &&
+            newStart < other.start + other.dur && newStart + block.dur > other.start
+          );
+
+          if (!overlaps) {
+            block.day = targetDay;
+            block.start = newStart;
+            if (block.auto) block.auto = false;
+            saveState();
+          }
+        }
+        buildGrid();
+      }
+
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+    });
   }
 
   function attachHandlers() {
@@ -214,6 +310,41 @@
       }
     });
 
+    const taskFilterTabs = document.getElementById('taskFilterTabs');
+    taskFilterTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cat-btn');
+      if (!btn) return;
+      [...taskFilterTabs.children].forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      taskFilter = btn.getAttribute('data-filter');
+      renderTasks();
+    });
+
+    document.getElementById('sortByPriority').addEventListener('change', (e) => {
+      sortTasksByPriority = e.target.checked;
+      renderTasks();
+    });
+
+    const taskCatSelect = document.getElementById('taskCatSelect');
+    let activeTaskCat = 'academics';
+    taskCatSelect.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cat-btn');
+      if (!btn) return;
+      [...taskCatSelect.children].forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      activeTaskCat = btn.getAttribute('data-cat');
+    });
+
+    const taskPrioritySelect = document.getElementById('taskPrioritySelect');
+    let activeTaskPriority = 0;
+    taskPrioritySelect.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cat-btn');
+      if (!btn) return;
+      [...taskPrioritySelect.children].forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      activeTaskPriority = Number(btn.getAttribute('data-p'));
+    });
+
     document.getElementById('taskForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const title = document.getElementById('taskTitle').value.trim();
@@ -221,7 +352,10 @@
       const dueDate = document.getElementById('taskDue').value;
       if (!title || !dueDate || !estHours || estHours <= 0) return;
       const taskId = 'task' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-      state.tasks.push({ id: taskId, title, estHours, dueDate });
+      state.tasks.push({
+        id: taskId, title, estHours, dueDate,
+        category: activeTaskCat, priority: activeTaskPriority
+      });
       saveState();
       renderTasks();
       document.getElementById('taskTitle').value = '';
@@ -291,4 +425,5 @@
   renderBalance();
   renderTasks();
   attachHandlers();
+  attachDragHandlers();
 })();

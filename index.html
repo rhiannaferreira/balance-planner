@@ -84,6 +84,14 @@
 
       <div class="panel">
         <h2>Tasks to schedule</h2>
+        <div class="cat-select tabs-3" id="taskFilterTabs">
+          <div class="cat-btn active" data-filter="all">All</div>
+          <div class="cat-btn" data-filter="personal">Personal</div>
+          <div class="cat-btn" data-filter="academics">Academics</div>
+        </div>
+        <label class="sort-check">
+          <input type="checkbox" id="sortByPriority" /> Sort by priority
+        </label>
         <div id="taskList"></div>
         <form class="add" id="taskForm">
           <div class="field">
@@ -98,6 +106,22 @@
             <div class="field">
               <label for="taskDue">Due date</label>
               <input id="taskDue" type="date" required />
+            </div>
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <div class="cat-select" id="taskCatSelect">
+              <div class="cat-btn active" data-cat="academics">Academics</div>
+              <div class="cat-btn" data-cat="personal">Personal</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Priority</label>
+            <div class="cat-select tabs-4" id="taskPrioritySelect">
+              <div class="cat-btn active" data-p="0">None</div>
+              <div class="cat-btn" data-p="1">!</div>
+              <div class="cat-btn" data-p="2">!!</div>
+              <div class="cat-btn" data-p="3">!!!</div>
             </div>
           </div>
           <button class="primary" type="submit">Add task</button>
