@@ -81,6 +81,30 @@
           <input id="sleepTarget" type="number" min="0" max="80" step="1" value="49" />
         </div>
       </div>
+
+      <div class="panel">
+        <h2>Tasks to schedule</h2>
+        <div id="taskList"></div>
+        <form class="add" id="taskForm">
+          <div class="field">
+            <label for="taskTitle">Task</label>
+            <input id="taskTitle" type="text" placeholder="e.g. Chem lab report" required />
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="taskHours">Est. hours</label>
+              <input id="taskHours" type="number" min="0.25" step="0.25" value="2" required />
+            </div>
+            <div class="field">
+              <label for="taskDue">Due date</label>
+              <input id="taskDue" type="date" required />
+            </div>
+          </div>
+          <button class="primary" type="submit">Add task</button>
+        </form>
+        <button class="primary" type="button" id="runScheduler" style="margin-top:10px; background:var(--study);">Auto-schedule study time</button>
+        <div id="schedulerReport"></div>
+      </div>
     </div>
 
     <div class="grid-wrap">
@@ -101,6 +125,7 @@
   </footer>
 </div>
 
+<script src="scheduler.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

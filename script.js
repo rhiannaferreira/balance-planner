@@ -30,6 +30,7 @@
   }
 
   let state = loadState();
+  if (!Array.isArray(state.tasks)) state.tasks = [];
 
   function saveState() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
@@ -49,12 +50,16 @@
     return fmtHour(start) + '–' + fmtHour(end);
   }
 
-  function weekLabel() {
+  function getWeekStart() {
     const now = new Date();
     const day = now.getDay(); // 0 sun .. 6 sat
     const diffToMon = (day === 0 ? -6 : 1 - day);
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diffToMon);
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMon);
+    return monday;
+  }
+
+  function weekLabel() {
+    const monday = getWeekStart();
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
     const opts = { month: 'short', day: 'numeric' };
@@ -90,6 +95,8 @@
     state.blocks.forEach(b => renderBlock(b));
   }
 
+  const LOCK_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+
   function renderBlock(b) {
     const col = document.querySelector('.day-col[data-day="' + b.day + '"]');
     if (!col) return;
@@ -101,6 +108,7 @@
     el.style.height = height + 'px';
     el.innerHTML = '<span class="t">' + escapeHtml(b.title) + '</span>' +
                     (height > 26 ? '<span class="time">' + fmtRange(b.start, b.dur) + '</span>' : '') +
+                    (b.auto ? '<span class="lock" data-id="' + b.id + '" title="Lock so re-planning leaves this alone">' + LOCK_SVG + '</span>' : '') +
                     '<span class="x" data-id="' + b.id + '">×</span>';
     col.appendChild(el);
   }
@@ -154,8 +162,40 @@
     return Math.round(n * 10) / 10;
   }
 
+  function renderTasks() {
+    const container = document.getElementById('taskList');
+    if (!state.tasks.length) {
+      container.innerHTML = '<div class="empty-note" style="padding:8px 0;">No tasks yet.</div>';
+      return;
+    }
+    container.innerHTML = state.tasks.map(t =>
+      '<div class="task-row"><span class="tt">' + escapeHtml(t.title) + '</span>' +
+      '<span class="tm">' + t.estHours + 'h · due ' + t.dueDate + '</span>' +
+      '<span class="x" data-task-id="' + t.id + '">×</span></div>'
+    ).join('');
+  }
+
+  function renderSchedulerReport(report) {
+    const box = document.getElementById('schedulerReport');
+    if (!report.length) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="verdict warn" style="margin-top:10px;">' +
+      report.map(r => {
+        const bits = [];
+        if (r.overdue) bits.push('overdue');
+        if (r.shortHours > 0) bits.push(round1(r.shortHours) + 'h short');
+        return '<div>' + escapeHtml(r.title) + ' — ' + bits.join(', ') + '</div>';
+      }).join('') +
+      '</div>';
+  }
+
   function attachHandlers() {
     document.getElementById('gridBody').addEventListener('click', (e) => {
+      const lock = e.target.closest('.lock');
+      if (lock) {
+        const block = state.blocks.find(b => b.id === lock.getAttribute('data-id'));
+        if (block) { block.auto = false; saveState(); buildGrid(); }
+        return;
+      }
       if (e.target.classList.contains('x')) {
         const id = e.target.getAttribute('data-id');
         state.blocks = state.blocks.filter(b => b.id !== id);
@@ -163,6 +203,40 @@
         buildGrid();
         renderBalance();
       }
+    });
+
+    document.getElementById('taskList').addEventListener('click', (e) => {
+      if (e.target.classList.contains('x')) {
+        const id = e.target.getAttribute('data-task-id');
+        state.tasks = state.tasks.filter(t => t.id !== id);
+        saveState();
+        renderTasks();
+      }
+    });
+
+    document.getElementById('taskForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('taskTitle').value.trim();
+      const estHours = Number(document.getElementById('taskHours').value);
+      const dueDate = document.getElementById('taskDue').value;
+      if (!title || !dueDate || !estHours || estHours <= 0) return;
+      const taskId = 'task' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+      state.tasks.push({ id: taskId, title, estHours, dueDate });
+      saveState();
+      renderTasks();
+      document.getElementById('taskTitle').value = '';
+    });
+
+    document.getElementById('runScheduler').addEventListener('click', () => {
+      const weekStart = getWeekStart();
+      const today = new Date();
+      state.blocks = state.blocks.filter(b => !b.auto);
+      const { newBlocks, report } = Scheduler.autoSchedule({ tasks: state.tasks, blocks: state.blocks, weekStart, today });
+      state.blocks = state.blocks.concat(newBlocks);
+      saveState();
+      buildGrid();
+      renderBalance();
+      renderSchedulerReport(report);
     });
 
     const catSelect = document.getElementById('catSelect');
@@ -215,5 +289,6 @@
   buildHead();
   buildGrid();
   renderBalance();
+  renderTasks();
   attachHandlers();
 })();

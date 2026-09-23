@@ -278,6 +278,32 @@
   }
   .block:hover .x { opacity: .6; }
   .block .x:hover { opacity: 1; }
+  .block .lock {
+    position: absolute;
+    top: 3px; right: 18px;
+    opacity: 0;
+    cursor: pointer;
+    color: inherit;
+    display: flex;
+  }
+  .block .lock svg { display: block; }
+  .block:hover .lock { opacity: .6; }
+  .block .lock:hover { opacity: 1; }
+
+  .task-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12.5px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .task-row:last-child { border-bottom: none; }
+  .task-row .tt { font-weight: 500; }
+  .task-row .tm { color: var(--ink-soft); font-size: 11px; white-space: nowrap; }
+  .task-row .x { cursor: pointer; color: var(--ink-soft); opacity: .6; }
+  .task-row .x:hover { opacity: 1; }
   .block.study { background: var(--study-soft); color: var(--study); border-color: color-mix(in srgb, var(--study) 30%, transparent); }
   .block.fun { background: var(--fun-soft); color: var(--fun); border-color: color-mix(in srgb, var(--fun) 30%, transparent); }
   .block.fixed { background: var(--fixed-soft); color: var(--fixed); border-color: color-mix(in srgb, var(--fixed) 30%, transparent); }
