@@ -95,12 +95,33 @@
   }
   .layout {
     display: grid;
-    grid-template-columns: 250px 1fr;
+    grid-template-columns: 230px 1fr 300px;
+    grid-template-areas: "left calendar right";
     gap: 22px;
     align-items: start;
   }
+  .sidebar-left { grid-area: left; }
+  .sidebar-right { grid-area: right; }
+  .grid-wrap { grid-area: calendar; }
+  @media (max-width: 1100px) {
+    .layout {
+      grid-template-columns: 220px 1fr;
+      grid-template-areas:
+        "left calendar"
+        "right right";
+    }
+  }
   @media (max-width: 860px) {
-    .layout { grid-template-columns: 1fr; }
+    .layout {
+      grid-template-columns: 1fr;
+      grid-template-areas: "left" "calendar" "right";
+    }
+  }
+
+  .targets-inline {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
   }
 
   /* Sidebar */
